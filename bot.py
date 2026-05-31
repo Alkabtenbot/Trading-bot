@@ -1,28 +1,31 @@
 import os
-import time
-import ccxt
+import requests
+from dotenv import load_dotenv
+from aiogram import Bot, Dispatcher, types
+from aiogram.filters import Command
+import asyncio
 
-API_KEY = os.getenv("API_KEY", "YOUR_API_KEY")
-API_SECRET = os.getenv("API_SECRET", "YOUR_API_SECRET")
+load_dotenv()
 
-def main():
-    print("Bot is starting...")
-    
-    exchange = ccxt.binance({
-        'apiKey': API_KEY,
-        'secret': API_SECRET,
-        'enableRateLimit': True,
-    })
-    
-    while True:
-        try:
-            ticker = exchange.fetch_ticker('BTC/USDT')
-            print(f"BTC Price: {ticker['last']}")
-            time.sleep(60)
-            
-        except Exception as e:
-            print(f"Error: {e}")
-            time.sleep(10)
+TOKEN = os.getenv("TELEGRAM_TOKEN")
+bot = Bot(token=TOKEN)
+dp = Dispatcher()
+
+def get_btc_price():
+    url = "https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT"
+    return float(requests.get(url).json()["price"])
+
+@dp.message(Command("start"))
+async def start(message: types.Message):
+    await message.answer("أهلاً! ابعت /price لتعرف سعر BTC")
+
+@dp.message(Command("price"))
+async def price(message: types.Message):
+    price = get_btc_price()
+    await message.answer(f"BTC Price: ${price:,.2f}")
+
+async def main():
+    await dp.start_polling(bot)
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
